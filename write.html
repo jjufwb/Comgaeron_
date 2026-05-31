@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GONGGU - 새 글 작성</title>
+    <style>
+        @font-face {
+            font-family: 'GMarketSans';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+            font-weight: 500; font-display: swap;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'GMarketSans',sans-serif; background:#f5f5f5; }
+        .page { min-height:100vh; background:#fff; }
+        .write-header-bar { border-bottom:1px solid #e8e8e8; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; height:60px; position:sticky; top:0; z-index:100; background:#fff;}
+        .write-header-bar h2 { font-size:18px; }
+        .write-header-bar button { width:36px; height:36px; background:transparent; border:1px solid #d0d0d0; border-radius:50%; cursor:pointer; font-size:18px; color:#333; display:flex; align-items:center; justify-content:center; font-family:'GMarketSans',sans-serif; transition:border-color 0.2s; }
+        .write-header-bar button:hover { border-color:#999; }
+        .write-container { padding:20px; max-width:600px; margin:0 auto; }
+        .form-group { margin-bottom:20px; }
+        .form-group label { display:block; font-size:14px; font-weight:bold; margin-bottom:8px; color:#333; }
+        .form-group input, .form-group select, .form-group textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:'GMarketSans',sans-serif; }
+        .form-group input[type="number"] { font-size:18px; padding:12px; }
+        .form-group input[type="file"] { padding:8px; }
+        .form-group textarea { resize:vertical; min-height:100px; }
+        .submit-btn { width:100%; padding:12px; background:#2d7a3a; color:white; border:none; border-radius:8px; font-size:16px; font-family:'GMarketSans',sans-serif; cursor:pointer; transition:background 0.2s; }
+        .submit-btn:hover { background:#245f2d; }
+        .location-input-wrap { position:relative; }
+        .location-input-wrap input { padding-right:90px; }
+        .location-gps-btn { position:absolute; right:8px; top:50%; transform:translateY(-50%); padding:5px 10px; background:#2d7a3a; color:white; border:none; border-radius:6px; font-size:12px; font-family:'GMarketSans',sans-serif; cursor:pointer; white-space:nowrap; }
+        .location-gps-btn:hover { background:#245f2d; }
+        .location-dropdown { position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid #ddd; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:200; max-height:240px; overflow-y:auto; display:none; }
+        .location-dropdown.open { display:block; }
+        .location-dropdown-item { display:block; width:100%; padding:11px 14px; background:#fff; border:none; border-bottom:1px solid #f0f0f0; text-align:left; font-family:'GMarketSans',sans-serif; cursor:pointer; }
+        .location-dropdown-item:last-child { border-bottom:none; }
+        .location-dropdown-item:hover, .location-dropdown-item:focus { background:#f0faf2; outline:none; }
+        .location-dropdown-item-name { font-size:14px; font-weight:bold; color:#1a1a1a; }
+        .location-dropdown-item-addr { font-size:12px; color:#999; margin-top:2px; }
+        .gps-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:10px 20px; border-radius:99px; font-size:13px; font-family:'GMarketSans',sans-serif; z-index:300; pointer-events:none; opacity:0; transition:opacity 0.3s; }
+        .gps-toast.show { opacity:1; }
+        @media (max-width:600px)  { .write-container { padding:15px; } }
+    </style>
+</head>
+<body>
+
+<div class="gps-toast" id="gpsToast"></div>
+
+<div id="page3" class="page">
+    <div class="write-header-bar">
+        <button onclick="location.href='index.html'">‹</button>
+        <h2>새 글 작성</h2>
+    </div>
+    <div class="write-container">
+        <form id="writeForm" onsubmit="submitPost(event)">
+            <div class="form-group">
+                <label>이미지:</label>
+                <input type="file" id="image" accept="image/*">
+            </div>
+            <div class="form-group">
+                <label>카테고리:</label>
+                <select id="category" required>
+                    <option value="">선택하세요</option>
+                    <option value="식료품">식료품</option>
+                    <option value="잡화">잡화</option>
+                    <option value="학용품">학용품</option>
+                    <option value="배달">배달</option>
+                    <option value="OTT">OTT</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>제목:</label>
+                <input type="text" id="title" placeholder="제목을 입력하세요" required>
+            </div>
+            <div class="form-group">
+                <label>내용:</label>
+                <textarea id="content" placeholder="내용을 입력하세요" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>위치 (구/동 검색 또는 GPS):</label>
+                <div class="location-input-wrap" id="locationWrap">
+                    <input type="text" id="locationInput" placeholder="예: 동작구, 북평동..." autocomplete="off" oninput="onLocationInput()">
+                    <button type="button" class="location-gps-btn" onclick="useMyGPS()">📍 내 위치</button>
+                    <div class="location-dropdown" id="locationDropdown"></div>
+                </div>
+                <input type="hidden" id="locationLat">
+                <input type="hidden" id="locationLng">
+                <input type="hidden" id="locationText">
+            </div>
+            <div class="form-group">
+                <label>인원 수:</label>
+                <input type="number" id="people" placeholder="인원 수를 입력하세요" min="1" required>
+            </div>
+            <div class="form-group">
+                <label>오픈채팅방 링크:</label>
+                <input type="url" id="link" placeholder="https://open.kakao.com/..." required>
+            </div>
+            <button type="submit" class="submit-btn">올리기</button>
+        </form>
+    </div>
+</div>
+
+<script>
+const KAKAO_REST_KEY = '4c4c12aa6eca5cd49959201dc7127f8d';
+let posts = JSON.parse(localStorage.getItem('gonggu_posts') || '[]');
+let searchTimer = null;
+let searchAbortController = null;
+
+function getCurrentUser() { return JSON.parse(localStorage.getItem('gonggu_current')||'null'); }
+
+if (!getCurrentUser()) {
+    alert('로그인이 필요합니다.');
+    location.href='login.html';
+}
+
+function onLocationInput() {
+    const query = document.getElementById('locationInput').value.trim();
+    document.getElementById('locationText').value = '';
+    document.getElementById('locationLat').value = '';
+    document.getElementById('locationLng').value = '';
+    if (!query) { closeDropdown(); return; }
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => searchLocation(query), 350);
+}
+
+function searchLocation(query) {
+    if (searchAbortController) searchAbortController.abort();
+    searchAbortController = new AbortController();
+    const signal = searchAbortController.signal;
+
+    Promise.all([
+        fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(query)}&size=10`, {
+            headers: { 'Authorization': 'KakaoAK ' + KAKAO_REST_KEY }, signal
+        }).then(r => r.json()).catch(() => ({ documents: [] })),
+        fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=15`, {
+            headers: { 'Authorization': 'KakaoAK ' + KAKAO_REST_KEY }, signal
+        }).then(r => r.json()).catch(() => ({ documents: [] }))
+    ]).then(([addrData, kwData]) => {
+        const seen = new Set();
+        const items = [];
+
+        function extractLabel(addressName) {
+            if (!addressName) return null;
+            const parts = addressName.split(' ');
+            const regionIdx = parts.reduce((best, p, i) =>
+                ['구','군','시'].some(s => p.endsWith(s)) ? i : best, -1);
+            if (regionIdx !== -1 && parts[regionIdx+1] &&
+                ['동','읍','면','리'].some(s => parts[regionIdx+1].endsWith(s))) {
+                return `${parts[regionIdx]} ${parts[regionIdx+1]}`;
+            }
+            if (regionIdx !== -1) return parts[regionIdx];
+            return parts.slice(-2).join(' ');
+        }
+
+        (addrData.documents || []).forEach(doc => {
+            const a = doc.address || doc.road_address;
+            if (!a) return;
+            const label = extractLabel(a.address_name);
+            if (label && !seen.has(label)) {
+                seen.add(label);
+                items.push({ label, addr: a.address_name, lat: a.y, lng: a.x });
+            }
+        });
+        (kwData.documents || []).forEach(doc => {
+            const label = extractLabel(doc.address_name);
+            if (label && !seen.has(label)) {
+                seen.add(label);
+                items.push({ label, addr: doc.address_name, lat: doc.y, lng: doc.x });
+            }
+        });
+
+        renderDropdown(items);
+    }).catch(() => {});
+}
+
+function renderDropdown(items) {
+    const dd = document.getElementById('locationDropdown');
+    dd.innerHTML = '';
+    if (!items.length) { closeDropdown(); return; }
+
+    items.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'location-dropdown-item';
+        btn.innerHTML = `<div class="location-dropdown-item-name">${item.label}</div><div class="location-dropdown-item-addr">${item.addr || ''}</div>`;
+        btn.addEventListener('click', () => selectLocation(item));
+        dd.appendChild(btn);
+    });
+    dd.classList.add('open');
+}
+
+function selectLocation(item) {
+    document.getElementById('locationInput').value = item.label;
+    document.getElementById('locationText').value = item.label;
+    document.getElementById('locationLat').value = item.lat || '';
+    document.getElementById('locationLng').value = item.lng || '';
+    closeDropdown();
+}
+
+function closeDropdown() {
+    const dd = document.getElementById('locationDropdown');
+    if (dd) dd.classList.remove('open');
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('#locationWrap')) setTimeout(closeDropdown, 150);
+});
+
+function useMyGPS() {
+    showToast('📍 GPS 위치를 가져오는 중...');
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            fetch(`https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${lng}&y=${lat}`, {
+                headers: { 'Authorization': 'KakaoAK ' + KAKAO_REST_KEY }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const doc = (data.documents || []).find(d => d.region_type === 'H') || data.documents?.[0];
+                const label = [doc?.region_2depth_name, doc?.region_3depth_name].filter(Boolean).join(' ') || '현재위치';
+                document.getElementById('locationInput').value = label;
+                document.getElementById('locationLat').value = lat;
+                document.getElementById('locationLng').value = lng;
+                document.getElementById('locationText').value = label;
+                closeDropdown();
+                showToast('✅ 위치가 설정됐어요');
+            })
+            .catch(() => showToast('❌ 위치 변환에 실패했어요'));
+        },
+        () => showToast('❌ 위치 권한이 필요해요')
+    );
+}
+
+function submitPost(event) {
+    event.preventDefault();
+    const user = getCurrentUser();
+    if (!user) { alert('로그인이 필요합니다.'); location.href='login.html'; return; }
+
+    const lat = parseFloat(document.getElementById('locationLat').value) || null;
+    const lng = parseFloat(document.getElementById('locationLng').value) || null;
+    const locText = document.getElementById('locationText').value.trim() || document.getElementById('locationInput').value.trim();
+
+    if (!locText) { alert('위치를 입력하세요.'); return; }
+
+    const imageFile = document.getElementById('image').files[0];
+    
+    const buildPost = (imageData) => ({
+        id: Math.max(...posts.map(p=>p.id))+1,
+        category: document.getElementById('category').value,
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        location: '📍'+locText,
+        lat, lng,
+        link: document.getElementById('link').value,
+        people: parseInt(document.getElementById('people').value),
+        participants: 1,
+        image: imageData,
+        author: user.id
+    });
+
+    const finish = (data) => {
+        posts.push(buildPost(data));
+        localStorage.setItem('gonggu_posts', JSON.stringify(posts));
+        location.href='index.html';
+    };
+
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = e => finish(e.target.result);
+        reader.readAsDataURL(imageFile);
+    } else finish(null);
+}
+
+function showToast(msg) {
+    const t=document.getElementById('gpsToast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>

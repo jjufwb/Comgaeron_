@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GONGGU - 공구 플랫폼</title>
+    <style>
+        @font-face {
+            font-family: 'GMarketSans';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+            font-weight: 500; font-display: swap;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'GMarketSans',sans-serif; background:#f5f5f5; }
+        .page { min-height:100vh; background:#fff; }
+        .header { position:sticky; top:0; z-index:100; background:#fff; border-bottom:1px solid #e8e8e8; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; height:60px; }
+        .header h1 { font-size:24px; font-weight:bold; flex:1; cursor: pointer; }
+        .header-buttons { display:flex; gap:10px; }
+        .header-buttons button { padding:8px 15px; background:#f0f0f0; border:1px solid #ddd; border-radius:5px; cursor:pointer; font-size:14px; font-family:'GMarketSans',sans-serif; transition:background 0.2s; }
+        .header-buttons button:hover { background:#e0e0e0; }
+        .header-buttons .btn-logout { background:#fff3f3; border-color:#ffcccc; color:#c0392b; }
+        .header-buttons .btn-logout:hover { background:#ffe0e0; }
+        .categories { display:flex; gap:10px; padding:14px 20px; background:#f9f9f9; border-bottom:1px solid #e8e8e8; overflow-x:auto; position:sticky; top:60px; z-index:99; align-items:center; }
+        .category-btn { padding:8px 18px; background:#fff; border:1px solid #ddd; border-radius:20px; cursor:pointer; font-size:14px; font-family:'GMarketSans',sans-serif; white-space:nowrap; transition:all 0.2s; flex-shrink:0; }
+        .category-btn:hover, .category-btn.active { background:#2d7a3a; color:white; border-color:#2d7a3a; }
+        .sort-divider { width:1px; height:24px; background:#ddd; flex-shrink:0; margin:0 4px; }
+        .sort-btn { padding:8px 14px; background:#fff; border:1px solid #ddd; border-radius:20px; cursor:pointer; font-size:13px; font-family:'GMarketSans',sans-serif; white-space:nowrap; transition:all 0.2s; flex-shrink:0; display:flex; align-items:center; gap:5px; }
+        .sort-btn:hover { border-color:#2d7a3a; color:#2d7a3a; }
+        .sort-btn.active { background:#e8f5e9; border-color:#2d7a3a; color:#2d7a3a; }
+        .sort-btn .icon { font-size:14px; }
+        .posts-container { padding:20px; display:grid; grid-template-columns:repeat(4,1fr); gap:15px; }
+        .post-card { background:#fff; border:0.5px solid #d8d8d8; border-radius:16px; padding:14px 14px 10px; cursor:pointer; transition:border-color 0.2s,background 0.2s; aspect-ratio:1; display:flex; flex-direction:column; justify-content:space-between; }
+        .post-card:hover { border-color:#2d7a3a; background:#f0faf2; }
+        .post-status { display:flex; align-items:center; gap:5px; margin-bottom:6px; }
+        .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .status-dot--active { background:#2d7a3a; } .status-dot--urgent { background:#e53935; } .status-dot--done { background:#b0b0b0; }
+        .status-text { font-size:13px; font-family:'GMarketSans',sans-serif; }
+        .status-text--active { color:#2d7a3a; } .status-text--urgent { color:#e53935; } .status-text--done { color:#b0b0b0; }
+        .post-body { flex:1; display:flex; flex-direction:column; justify-content:center; text-align:center; }
+        .post-title { font-size:18px; font-weight:bold; margin-bottom:6px; font-family:'GMarketSans',sans-serif; }
+        .post-title--done { color:#b0b0b0; }
+        .post-location { font-size:14px; color:#888; font-family:'GMarketSans',sans-serif; }
+        .post-distance { font-size:12px; color:#2d7a3a; margin-top:3px; font-family:'GMarketSans',sans-serif; }
+        .progress-bar-wrap { margin-top:10px; }
+        .progress-bar-bg { width:100%; height:7px; background:#e8e8e8; border-radius:99px; overflow:hidden; }
+        .progress-bar-fill { height:100%; border-radius:99px; background:#2d7a3a; transition:width 0.4s; }
+        .progress-bar-fill--done { background:#b0b0b0; }
+        .footer { padding:20px; text-align:center; border-top:1px solid #ddd; margin-top:20px; }
+        .write-post-btn { padding:12px 30px; background:#2d7a3a; color:white; border:none; border-radius:5px; font-size:16px; font-family:'GMarketSans',sans-serif; cursor:pointer; transition:background 0.2s; }
+        .write-post-btn:hover { background:#245f2d; }
+        .gps-toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.75); color:#fff; padding:10px 20px; border-radius:99px; font-size:13px; font-family:'GMarketSans',sans-serif; z-index:300; pointer-events:none; opacity:0; transition:opacity 0.3s; }
+        .gps-toast.show { opacity:1; }
+        @media (max-width:1200px) { .posts-container { grid-template-columns:repeat(3,1fr); } }
+        @media (max-width:768px)  { .posts-container { grid-template-columns:repeat(2,1fr); } }
+        @media (max-width:600px)  { .header { flex-direction:column; height:auto; gap:10px; } .posts-container { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="gps-toast" id="gpsToast"></div>
+
+<div id="page1" class="page">
+    <div class="header">
+        <h1 onclick="location.href='index.html'">GONGGU</h1>
+        <div class="header-buttons" id="headerButtons"></div>
+    </div>
+    <div class="categories">
+        <button class="category-btn active" onclick="filterCategory('전체',this)">전체</button>
+        <button class="category-btn" onclick="filterCategory('식료품',this)">식료품</button>
+        <button class="category-btn" onclick="filterCategory('잡화',this)">잡화</button>
+        <button class="category-btn" onclick="filterCategory('학용품',this)">학용품</button>
+        <button class="category-btn" onclick="filterCategory('배달',this)">배달</button>
+        <button class="category-btn" onclick="filterCategory('OTT',this)">OTT</button>
+        <div class="sort-divider"></div>
+        <button class="sort-btn" id="sortByDistBtn" onclick="toggleDistanceSort()">
+            <span class="icon">📍</span> 거리순
+        </button>
+    </div>
+    <div class="posts-container" id="postsContainer"></div>
+    <div class="footer">
+        <button class="write-post-btn" onclick="goWrite()">글쓰기</button>
+    </div>
+</div>
+
+<script>
+// 기본 초기 데이터 초기화 정의
+const defaultPosts = [
+    {id:1,category:'식료품',title:'계란 30판 공구하실 분',content:'계란 10알씩 나눠가질 세 분 구합니다.',location:'📍동작구 상도동',lat:37.5063,lng:126.9440,link:'https://open.kakao.com/example1',people:4,participants:1,image:'https://i.namu.wiki/i/9JMAWZiVnW0YiQAwpXxLEVbE0nGstUKLxbN_v0w856DrBtNOFvkrw-oiHIk3XSnFeqpp4u1i-lE2RAfqqyeE9A.webp',author:'admin'},
+    {id:2,category:'식료품',title:'사과 공구하실 분',content:'사과 10개씩 나눠가질 세 분 구합니다.',location:'📍동작구 노량진동',lat:37.5130,lng:126.9425,link:'https://open.kakao.com/example2',people:4,participants:1,image:'https://cdn.news.hidoc.co.kr/news/photo/202510/54269_85301_4238.jpg',author:'admin'},
+    {id:3,category:'잡화',title:'선풍기 1+1 같이 사실 분',content:'반 값으로 삽시다',location:'📍서초구 방배동',lat:37.4817,lng:126.9974,link:'https://open.kakao.com/example3',people:4,participants:1,image:'https://m.highon.kr/web/product/big/202405/598842119a3f46628d16be32fdfce8ac.jpg',author:'admin'},
+    {id:4,category:'잡화',title:'파우치 공구하실 분',content:'여러 개 사서 나눠가져요',location:'📍마포구 합정동',lat:37.5495,lng:126.9138,link:'https://open.kakao.com/example4',people:4,participants:3,image:'https://item.elandrs.com/r/image/item/2026-01-21/0be9f8ed-3462-45c2-8984-28fe502f57cf.jpg?w=750&h=&q=100',author:'admin'},
+    {id:5,category:'학용품',title:'샤프 공구하실 분',content:'저렴한 가격으로 사서 나눠가실 세 분 구합니다.',location:'📍강남구 역삼동',lat:37.5007,lng:127.0368,link:'https://open.kakao.com/example5',people:4,participants:4,image:'https://image.aladin.co.kr/product/26367/77/cover500/g262430916_1.jpg',author:'admin'},
+    {id:6,category:'학용품',title:'지우개',content:'지우개 30개 공구해요.',location:'📍송파구 잠실동',lat:37.5145,lng:127.1059,link:'https://open.kakao.com/example6',people:4,participants:1,image:'https://m.hwabang.net/web/upload/NNEditor/20170102/mobile/64922b33568db4d4e2832a3ead321565_1483338042.png',author:'admin'},
+    {id:7,category:'배달',title:'엽떡 같이 시키실 분',content:'엽떡 하나는 너무 많아서 나눠 드실 분?',location:'📍은평구 녹번동',lat:37.6101,lng:126.9271,link:'https://open.kakao.com/example7',people:4,participants:1,image:'https://wimg.sedaily.com/news/legacy/2023/05/06/29PH1PD9A6_1.png',author:'admin'},
+    {id:8,category:'배달',title:'피자 같이 시키실 분',content:'피자 한 판 나눠요.',location:'📍동작구 사당동',lat:37.4763,lng:126.9816,link:'https://open.kakao.com/example8',people:4,participants:1,image:'https://i.namu.wiki/i/umI-heVYVS9miQNqXM13FRUOHHL4l1nzsZgN9XRLFG7nI_7Dyf-Myr6HmiWf9Qd7SAZQz3WYSQHPXXtGAwLTag.webp',author:'admin'},
+    {id:9,category:'OTT',title:'넷플릭스 같이 쓰실 분',content:'4인 요금제 같이 쓰실 분 구해요.',location:'📍성동구 성수동',lat:37.5446,lng:127.0567,link:'https://open.kakao.com/example9',people:4,participants:1,image:'https://talkimg.imbc.com/TVianUpload/tvian/TViews/image/2025/06/09/984a0cbb-5252-4a8d-a09d-5921a95486f5.png',author:'admin'},
+    {id:10,category:'OTT',title:'티빙 공구하실 분',content:'티빙 같이 쓰실 분 구해요.',location:'📍노원구 공릉동',lat:37.6259,lng:127.0752,link:'https://open.kakao.com/example9',people:4,participants:1,image:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQEnIl2PnvfJJK9yWIuD4Hhi12q-NfSzJ4m2w&s',author:'admin'}
+];
+
+if(!localStorage.getItem('gonggu_posts')) {
+    localStorage.setItem('gonggu_posts', JSON.stringify(defaultPosts));
+}
+
+let posts = JSON.parse(localStorage.getItem('gonggu_posts'));
+let currentCategory = '전체';
+let myLat = null, myLng = null;
+let sortByDistance = false;
+
+function getCurrentUser() { return JSON.parse(localStorage.getItem('gonggu_current')||'null'); }
+function logout() { localStorage.removeItem('gonggu_current'); updateHeader(); renderPosts(); }
+
+function updateHeader() {
+    const user = getCurrentUser();
+    const btns = document.getElementById('headerButtons');
+    btns.innerHTML = user
+        ? `<button onclick="location.href='mypage.html'">마이페이지</button><button class="btn-logout" onclick="logout()">로그아웃</button>`
+        : `<button onclick="location.href='login.html'">로그인</button><button onclick="location.href='signup.html'">회원가입</button>`;
+}
+
+function goWrite() {
+    if (!getCurrentUser()) { alert('로그인이 필요합니다.'); location.href='login.html'; return; }
+    location.href='write.html';
+}
+
+function filterCategory(cat, btn) {
+    currentCategory = cat;
+    document.querySelectorAll('.category-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPosts();
+}
+
+function calcDist(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLng = (lng2-lng1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function formatDist(km) {
+    return km < 1 ? Math.round(km*1000)+'m' : km.toFixed(1)+'km';
+}
+
+function toggleDistanceSort() {
+    if (!sortByDistance) {
+        showToast('📍 내 위치를 확인하는 중...');
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                myLat = pos.coords.latitude;
+                myLng = pos.coords.longitude;
+                sortByDistance = true;
+                document.getElementById('sortByDistBtn').classList.add('active');
+                showToast('✅ 거리순으로 정렬했어요');
+                renderPosts();
+            },
+            () => showToast('❌ 위치 권한이 필요해요')
+        );
+    } else {
+        sortByDistance = false;
+        document.getElementById('sortByDistBtn').classList.remove('active');
+        renderPosts();
+    }
+}
+
+function getStatus(post) {
+    if (post.participants >= post.people) return 'done';
+    if (post.people - post.participants === 1) return 'urgent';
+    return 'active';
+}
+
+function renderPosts() {
+    posts = JSON.parse(localStorage.getItem('gonggu_posts'));
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = '';
+    let filtered = currentCategory==='전체' ? [...posts] : posts.filter(p=>p.category===currentCategory);
+
+    if (sortByDistance && myLat !== null) {
+        filtered.sort((a,b) => {
+            const da = (a.lat&&a.lng) ? calcDist(myLat,myLng,a.lat,a.lng) : 9999;
+            const db = (b.lat&&b.lng) ? calcDist(myLat,myLng,b.lat,b.lng) : 9999;
+            return da - db;
+        });
+    }
+
+    filtered.forEach(post => {
+        const status = getStatus(post);
+        const pct = Math.round((post.participants/post.people)*100);
+        const isDone = status==='done';
+        const label = {done:'완료',urgent:'임박',active:'진행 중'}[status];
+        const distHtml = (sortByDistance && myLat !== null && post.lat && post.lng)
+            ? `<div class="post-distance">${formatDist(calcDist(myLat,myLng,post.lat,post.lng))} 거리</div>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'post-card';
+        card.onclick = ()=> {
+            localStorage.setItem('gonggu_current_view_id', post.id);
+            location.href = 'detail.html';
+        };
+        card.innerHTML = `
+            <div class="post-status">
+                <div class="status-dot status-dot--${status}"></div>
+                <span class="status-text status-text--${status}">${label}</span>
+            </div>
+            <div class="post-body">
+                <div class="post-title${isDone?' post-title--done':''}">${post.title}</div>
+                <div class="post-location">${post.location}</div>
+                ${distHtml}
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill${isDone?' progress-bar-fill--done':''}" style="width:${pct}%"></div>
+                </div>
+            </div>`;
+        container.appendChild(card);
+    });
+}
+
+function showToast(msg) {
+    const t=document.getElementById('gpsToast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+updateHeader();
+renderPosts();
+// 💡 다른 페이지(상세페이지 등)에서 돌아왔을 때 데이터를 새로 읽어오도록 하는 핵심 코드!
+window.addEventListener('pageshow', function(event) {
+    // 뒤로가기로 인해서 페이지가 다시 나타난 경우에도 작동하게 만듭니다.
+    posts = JSON.parse(localStorage.getItem('gonggu_posts'));
+    updateHeader();
+    renderPosts();
+});
+</script>
+</body>
+</html>

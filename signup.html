@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GONGGU - 회원가입</title>
+    <style>
+        @font-face {
+            font-family: 'GMarketSans';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff') format('woff');
+            font-weight: 500; font-display: swap;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'GMarketSans',sans-serif; background:#f5f5f5; }
+        .page { min-height:100vh; background:#fff; }
+        .auth-header-bar { border-bottom:1px solid #e8e8e8; padding:15px 20px; display:flex; align-items:center; gap:12px; height:60px; position:sticky; top:0; z-index:100; background:#fff;}
+        .back-btn { width:36px; height:36px; background:transparent; border:1px solid #d0d0d0; border-radius:50%; cursor:pointer; font-size:18px; color:#333; display:flex; align-items:center; justify-content:center; font-family:'GMarketSans',sans-serif; transition:border-color 0.2s; }
+        .back-btn:hover { border-color:#999; }
+        .auth-header-bar h2 { font-size:18px; }
+        .auth-container { padding:40px 20px; max-width:420px; margin:0 auto; }
+        .auth-container .logo { font-size:32px; font-weight:bold; text-align:center; color:#2d7a3a; margin-bottom:8px; }
+        .auth-container .logo-sub { font-size:14px; color:#888; text-align:center; margin-bottom:32px; }
+        .auth-input-group { margin-bottom:16px; }
+        .auth-input-group label { display:block; font-size:13px; color:#555; margin-bottom:6px; }
+        .auth-input-group input { width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:10px; font-size:15px; font-family:'GMarketSans',sans-serif; outline:none; transition:border-color 0.2s; }
+        .auth-input-group input:focus { border-color:#2d7a3a; }
+        .auth-main-btn { width:100%; padding:13px; background:#2d7a3a; color:white; border:none; border-radius:10px; font-size:16px; font-family:'GMarketSans',sans-serif; cursor:pointer; margin-top:8px; transition:background 0.2s; }
+        .auth-main-btn:hover { background:#245f2d; }
+        .auth-switch { text-align:center; margin-top:20px; font-size:14px; color:#888; }
+        .auth-switch span { color:#2d7a3a; cursor:pointer; font-weight:bold; }
+        .auth-switch span:hover { text-decoration:underline; }
+        .auth-error { background:#fff0f0; color:#c0392b; border:1px solid #ffcccc; border-radius:8px; padding:10px 14px; font-size:13px; margin-bottom:14px; display:none; }
+        .auth-error.show { display:block; }
+        @media (max-width:600px)  { .auth-container { padding:15px; } }
+    </style>
+</head>
+<body>
+
+<div id="page5" class="page">
+    <div class="auth-header-bar">
+        <button class="back-btn" onclick="location.href='login.html'">‹</button>
+        <h2>회원가입</h2>
+    </div>
+    <div class="auth-container">
+        <div class="logo">GONGGU</div>
+        <div class="logo-sub">새 계정 만들기</div>
+        <div class="auth-error" id="signupError"></div>
+        <div class="auth-input-group">
+            <label>아이디</label>
+            <input type="text" id="signupId" placeholder="아이디를 입력하세요">
+        </div>
+        <div class="auth-input-group">
+            <label>닉네임</label>
+            <input type="text" id="signupNick" placeholder="닉네임을 입력하세요">
+        </div>
+        <div class="auth-input-group">
+            <label>비밀번호</label>
+            <input type="password" id="signupPw" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')doSignup()">
+        </div>
+        <button class="auth-main-btn" onclick="doSignup()">가입하기</button>
+        <div class="auth-switch">이미 계정이 있으신가요? <span onclick="location.href='login.html'">로그인</span></div>
+    </div>
+</div>
+
+<script>
+function getUsers() { return JSON.parse(localStorage.getItem('gonggu_users')||'[]'); }
+function saveUsers(u) { localStorage.setItem('gonggu_users',JSON.stringify(u)); }
+function setCurrentUser(u) { localStorage.setItem('gonggu_current',JSON.stringify(u)); }
+
+function doSignup() {
+    const id=document.getElementById('signupId').value.trim(), nick=document.getElementById('signupNick').value.trim(), pw=document.getElementById('signupPw').value;
+    const err=document.getElementById('signupError');
+    if (!id||!nick||!pw) { showErr(err,'모든 항목을 입력하세요.'); return; }
+    const users=getUsers();
+    if (users.find(u=>u.id===id)) { showErr(err,'이미 사용 중인 아이디입니다.'); return; }
+    users.push({id,nickname:nick,pw}); saveUsers(users);
+    err.classList.remove('show');
+    setCurrentUser({id,nickname:nick});
+    alert(`환영합니다, ${nick}님! 🎉`);
+    location.href='index.html';
+}
+
+function showErr(el,msg) { el.textContent=msg; el.classList.add('show'); }
+</script>
+</body>
+</html>
